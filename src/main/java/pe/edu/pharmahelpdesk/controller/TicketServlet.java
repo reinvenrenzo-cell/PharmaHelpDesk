@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import pe.edu.pharmahelpdesk.dto.TicketDTO;
 import pe.edu.pharmahelpdesk.model.Ticket;
 import pe.edu.pharmahelpdesk.dao.TicketDAO;
 
@@ -26,16 +27,11 @@ public class TicketServlet extends HttpServlet {
 
         request.setCharacterEncoding("UTF-8");
 
-        String solicitante =
-                request.getParameter("solicitante");
-        String puntoVenta =
-                request.getParameter("puntoVenta");
-        String categoria =
-                request.getParameter("categoria");
-        String prioridad =
-                request.getParameter("prioridad");
-        String descripcion =
-                request.getParameter("descripcion");
+        String solicitante = request.getParameter("solicitante");
+        String puntoVenta = request.getParameter("puntoVenta");
+        String categoria = request.getParameter("categoria");
+        String prioridad = request.getParameter("prioridad");
+        String descripcion = request.getParameter("descripcion");
 
         // Validar campos obligatorios
         if (solicitante == null || solicitante.isBlank()
@@ -46,44 +42,53 @@ public class TicketServlet extends HttpServlet {
 
             response.sendError(
                 HttpServletResponse.SC_BAD_REQUEST,
-                "Todos los campos son obligatorios"
+                "Todos los campos son obligatorios."
             );
             return;
         }
 
-        // Crear objeto del modelo
-        Ticket ticket = new Ticket();
+        // DTO: transportar datos del formulario
+        TicketDTO dto = new TicketDTO();
 
-        ticket.setCodigo(
-            "PH-" + UUID.randomUUID().toString()
-                    .substring(0, 8).toUpperCase()
+        dto.setCodigo(
+            "PH-" + UUID.randomUUID()
+                .toString().toUpperCase()
         );
 
-        ticket.setSolicitante(solicitante);
-        ticket.setPuntoVenta(puntoVenta);
-        ticket.setCategoria(categoria);
-        ticket.setPrioridad(prioridad);
-        ticket.setDescripcion(descripcion);
-        ticket.setEstado("Abierto");
+        dto.setSolicitante(solicitante.trim());
+        dto.setPuntoVenta(puntoVenta.trim());
+        dto.setCategoria(categoria);
+        dto.setPrioridad(prioridad);
+        dto.setDescripcion(descripcion.trim());
+        dto.setEstado("Abierto");
 
-        // Guardar en MySQL mediante DAO
-        boolean guardado = ticketDAO.registrar(ticket);
+        // Modelo: representar la entidad Ticket
+        Ticket ticket = new Ticket();
 
-        if (guardado) {
-            request.setAttribute("codigo", ticket.getCodigo());
-            request.setAttribute("solicitante", ticket.getSolicitante());
-            request.setAttribute("puntoVenta", ticket.getPuntoVenta());
-            request.setAttribute("categoria", ticket.getCategoria());
-            request.setAttribute("prioridad", ticket.getPrioridad());
-            request.setAttribute("descripcion", ticket.getDescripcion());
-            request.setAttribute("estado", ticket.getEstado());
+        ticket.setCodigo(dto.getCodigo());
+        ticket.setSolicitante(dto.getSolicitante());
+        ticket.setPuntoVenta(dto.getPuntoVenta());
+        ticket.setCategoria(dto.getCategoria());
+        ticket.setPrioridad(dto.getPrioridad());
+        ticket.setDescripcion(dto.getDescripcion());
+        ticket.setEstado(dto.getEstado());
+
+        // DAO: registrar ticket en MySQL
+        boolean registrado = ticketDAO.registrar(ticket);
+
+        if (registrado) {
+
+            // Enviar DTO a la vista JSP
+            request.setAttribute("ticket", dto);
 
             request.getRequestDispatcher("/resultado.jsp")
                    .forward(request, response);
+
         } else {
+
             response.sendError(
                 HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                "No se pudo registrar el ticket en la base de datos."
+                "No se pudo guardar el ticket."
             );
         }
     }
